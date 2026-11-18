@@ -1,0 +1,12 @@
+Models: Shiba Inu and Husky
+Author: Quaternius
+Original pack: Ultimate Animated Animal Pack
+Original source: https://quaternius.com/packs/ultimateanimatedanimals.html
+License: CC0 1.0 Universal
+License text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Download mirror: https://github.com/Papyszoo/CC0-Public-Domain-Models
+Pack metadata: packs/quaternius-ultimateanimatedanimals/pack.json
+Downloaded files: models/shiba_inu/shiba_inu.glb and models/husky/husky.glb inside that pack.
+The mirror labels the original Quaternius pack CC0, matching the original creator page.
+Changes in this test: in-engine scale, orientation, looping and crossfades; no mesh edits.
+The Husky is a temporary test companion and is not a Golden Retriever.
