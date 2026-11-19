@@ -1,0 +1,14 @@
+{
+  "japanese_machiya_set_kit.glb": {
+    "bytes": 2483464,
+    "sha256": "1bb8e6842e171b07a14cc620e8eb9157cd4f34e052c30f9cf247bac25587cf7b"
+  },
+  "simple_japanese_house_1.glb": {
+    "bytes": 3175536,
+    "sha256": "52de0b7cdaa01de841bbe13272c7bcf5b9f8787d5a84a6a772bb56ae3e45b569"
+  },
+  "simple_japanese_modular_asset_library.glb": {
+    "bytes": 2614136,
+    "sha256": "462db238b40b8ca397b6d309a0a9beb70ee51baa9466a05d41ce5892c5f05b86"
+  }
+}
