@@ -54,6 +54,9 @@ var sounds: Dictionary = {}
 var ambient: AudioStreamPlayer
 var last_nearest: Dictionary = {}
 var polish: Polish
+var menu_title: Label
+var menu_stage: MenuScene
+var menu_dim: ColorRect
 func _ready():
 	dev_enabled = OS.get_cmdline_user_args().has("--dev")
 	load_settings()
@@ -103,6 +106,10 @@ func _ready():
 	add_child(polish)
 	polish.build()
 	apply_look()
+	menu_stage = MenuScene.new()
+	menu_stage.name = "MenuStage"
+	get_tree().root.add_child(menu_stage)  # добавляем в корень сцены, а не в game
+	menu_stage.build(self)
 	show_menu(true)
 	if OS.get_cmdline_user_args().has("--smoke"):
 		call_deferred("smoke_test")
@@ -169,6 +176,12 @@ func build_ui():
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(root)
+	menu_dim = ColorRect.new()
+	menu_dim.color = Color(0, 0, 0, 0.75)
+	menu_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_dim.visible = false
+	root.add_child(menu_dim)
 	var objective = hud_panel()
 	objective.position = Vector2(24, 24)
 	objective.custom_minimum_size = Vector2(594, 0)
@@ -240,24 +253,28 @@ func build_ui():
 	toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast_surface.add_child(toast)
 	menu_panel = PanelContainer.new()
-	menu_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	menu_panel.position = Vector2(-280, -315)
-	menu_panel.size = Vector2(560, 630)
-	var ms = StyleBoxFlat.new()
-	ms.bg_color = Color(0.045, 0.065, 0.074, 0.97)
-	ms.content_margin_left = 32
-	ms.content_margin_right = 32
-	ms.content_margin_top = 24
-	ms.content_margin_bottom = 24
-	menu_panel.add_theme_stylebox_override("panel", ms)
+	menu_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	menu_panel.position = Vector2(44, -150)
+	menu_panel.size = Vector2(360, 320)
+	menu_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	root.add_child(menu_panel)
 	var scroll = ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	menu_panel.add_child(scroll)
 	menu_box = VBoxContainer.new()
 	menu_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	menu_box.add_theme_constant_override("separation", 12)
+	menu_box.add_theme_constant_override("separation", 10)
 	scroll.add_child(menu_box)
+
+	menu_title = label("Life is Sebek", 52)
+	menu_title.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	menu_title.position = Vector2(44, 34)
+	menu_title.add_theme_color_override("font_color", Color("fffdf5"))
+	menu_title.add_theme_constant_override("shadow_offset_x", 2)
+	menu_title.add_theme_constant_override("shadow_offset_y", 4)
+	root.add_child(menu_dim)
+	root.add_child(menu_title)
 func clear_menu():
 	for child in menu_box.get_children():
 		menu_box.remove_child(child)
@@ -265,8 +282,28 @@ func clear_menu():
 func button(text: String, callback: Callable):
 	var b = Button.new()
 	b.text = text
-	b.custom_minimum_size.y = 44
-	b.add_theme_font_size_override("font_size", 20)
+	b.flat = true
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.custom_minimum_size = Vector2(300, 46)
+	b.add_theme_font_size_override("font_size", 24)
+	b.add_theme_color_override("font_color", Color("fffdf5"))
+	b.add_theme_color_override("font_hover_color", Color("ffd788"))
+	b.add_theme_color_override("font_pressed_color", Color("ffd788"))
+	var sb = StyleBoxFlat.new()
+	sb.draw_center = false
+	sb.border_width_bottom = 2
+	sb.border_color = Color(1, 1, 1, 0.35)
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	b.add_theme_stylebox_override("normal", sb)
+	var sbh: StyleBoxFlat = sb.duplicate()
+	sbh.border_width_bottom = 3
+	sbh.border_color = Color(1, 1, 1, 0.85)
+	b.add_theme_stylebox_override("hover", sbh)
+	var sbp: StyleBoxFlat = sb.duplicate()
+	sbp.border_color = Color("ffd788")
+	b.add_theme_stylebox_override("pressed", sbp)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.pressed.connect(callback)
 	menu_box.add_child(b)
 func show_menu(main: bool = false):
@@ -275,31 +312,77 @@ func show_menu(main: bool = false):
 	dog.locked = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	menu_panel.visible = true
+	if controls_surface:
+		controls_surface.visible = false
+	if context_surface:
+		context_surface.visible = false
+	if toast_surface:
+		toast_surface.visible = false
+	if subtitle_surface:
+		subtitle_surface.visible = false
+	for c in hud:
+		c.visible = false
+	if menu_title:
+		menu_title.visible = main
+	if menu_stage:
+		if main:
+			menu_stage.activate()
+			menu_stage.set_paused(false)
+		else:
+			menu_stage.set_paused(true)
+	if menu_dim:
+		menu_dim.visible = not main        # затемнение только в подменю
 	clear_menu()
-	menu_box.add_child(label("ЛУННЫЕ ПРИЗРАКИ", 29))
-	menu_box.add_child(label("Японская деревня 0.6 · Godot 4.5.1", 16))
-	var status = label("Версия 0.6: сюжет по сценарию, бамбуковые локации,\nКратос и Гост, Глава 2: Тёмный лес.", 17)
-	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	menu_box.add_child(status)
-	if not main:
+	if main:
+		button("Играть", play_menu)
+		button("Тесты", tests_menu)
+		button("Настройки", show_settings)
+		button("Выйти", quit_game)
+	else:
 		button("Продолжить", resume)
+		if not SaveStore.read().is_empty():
+			button("Загрузить контрольную точку", load_game)
+		button("Сохранить и выйти в меню", func(): save_game(); show_menu(true))
+		button("Настройки", show_settings)
+		button("Выйти", quit_game)
+func play_menu():
+	if menu_dim:
+		menu_dim.visible = true
+	if menu_stage:
+		menu_stage.set_paused(true)
+	clear_menu()
+	menu_box.add_child(label("Играть", 26))
 	if not SaveStore.read().is_empty():
 		button("Загрузить контрольную точку", load_game)
+	button("Новая игра", confirm_new if FileAccess.file_exists(SaveStore.PATH) else new_game)
+	button("Назад", func(): show_menu(true))
+
+func tests_menu():
+	if menu_dim:
+		menu_dim.visible = true
+	if menu_stage:
+		menu_stage.set_paused(true)
+	clear_menu()
+	menu_box.add_child(label("Тесты", 26))
 	button("Осмотреть новую окраину · F4 — свет", start_village_test)
 	button("Тест собак у костра", start_model_test)
-	button("Новая игра", confirm_new if FileAccess.file_exists(SaveStore.PATH) else new_game)
-	button("Настройки и управление", show_settings)
-	if not main:
-		button("Сохранить и выйти в меню", func(): save_game();show_menu(true))
-	button("Выход из игры", quit_game)
-	if dev_enabled:
-		button("Разработчик: главы", show_dev)
+	button("Назад", func(): show_menu(true))
 func confirm_new():
 	clear_menu()
 	menu_box.add_child(label("Заменить контрольную точку?", 24))
 	button("Да, начать заново", new_game)
 	button("Отмена", func(): show_menu(in_menu))
 func resume():
+	if menu_dim:
+		menu_dim.visible = false
+	if menu_stage:
+		menu_stage.deactivate()
+	if menu_title:
+		menu_title.visible = false
+	if menu_stage:
+		menu_stage.deactivate()
+	if menu_title:
+		menu_title.visible = false
 	paused = false
 	in_menu = false
 	menu_panel.visible = false
@@ -917,7 +1000,13 @@ func update_companions(delta: float):
 	if current().id == "ridge" and threat.mode == Threat.Mode.ABSENT:
 		threat.activate(Vector3(75, 0, 44))
 func show_settings():
+	if menu_title:
+		menu_title.visible = false
 	clear_menu()
+	if menu_dim:
+		menu_dim.visible = true
+	if menu_stage:
+		menu_stage.set_paused(true)
 	menu_box.add_child(label("Настройки", 28))
 	var help = label("WASD — движение; Shift — бег; Ctrl — осторожно.\nМышь — камера; ПКМ — запахи; E — действие.\nУдержание E — рыть / тянуть / пролезать.\nQ — лай; F — улыбка; H — подсказки вкл/выкл; M — карта локаций.\nE рядом с собаками и жителями — общение; удерживайте E у собаки — игра.\nEsc — пауза / пропуск кат-сцены.\nВ кат-сцене: пробел — следующая реплика.", 16)
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -961,6 +1050,8 @@ func save_settings():
 	if f:
 		f.store_string(JSON.stringify(settings))
 func show_dev():
+	if menu_title:
+		menu_title.visible = false
 	paused = true
 	dog.locked = true
 	menu_panel.visible = true
@@ -989,6 +1080,8 @@ func jump_chapter(chapter: int):
 	resume()
 	save_game()
 func show_credits():
+	if menu_title:
+		menu_title.visible = false
 	paused = true
 	dog.locked = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

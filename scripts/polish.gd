@@ -89,7 +89,7 @@ func build():
 	make_dog_friend()
 	make_characters()
 	portal = ChapterPortal.new()
-	portal.polish = self
+	portal.set("polish", self)
 	portal.position = Vector3(-3.5, 0, -14.5)
 	add_child(portal)
 	build_ui()

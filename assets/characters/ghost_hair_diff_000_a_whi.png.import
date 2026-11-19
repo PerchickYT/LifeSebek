@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://jy5j62m6a45h"
-path="res://.godot/imported/ghost_hair_diff_000_a_whi.png-245d50066cca0d0d7726116531b55d55.ctex"
+path.s3tc="res://.godot/imported/ghost_hair_diff_000_a_whi.png-245d50066cca0d0d7726116531b55d55.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "968ac1003084c4d0a62af845d7c3595b"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/ghost_hair_diff_000_a_whi.png"
-dest_files=["res://.godot/imported/ghost_hair_diff_000_a_whi.png-245d50066cca0d0d7726116531b55d55.ctex"]
+dest_files=["res://.godot/imported/ghost_hair_diff_000_a_whi.png-245d50066cca0d0d7726116531b55d55.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

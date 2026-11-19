@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://qk2pfs1okjki"
-path="res://.godot/imported/ghost_Head_diff_000_a_whi.png-ff58b8b04c75af20095e5310d51ab6fc.ctex"
+path.s3tc="res://.godot/imported/ghost_Head_diff_000_a_whi.png-ff58b8b04c75af20095e5310d51ab6fc.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ca0c7294922553f8f6600c406234b28f"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/ghost_Head_diff_000_a_whi.png"
-dest_files=["res://.godot/imported/ghost_Head_diff_000_a_whi.png-ff58b8b04c75af20095e5310d51ab6fc.ctex"]
+dest_files=["res://.godot/imported/ghost_Head_diff_000_a_whi.png-ff58b8b04c75af20095e5310d51ab6fc.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0
