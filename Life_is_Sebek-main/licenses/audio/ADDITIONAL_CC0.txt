@@ -1,5 +1,0 @@
-CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
-Brandon Morris (HaelDB): https://opengameart.org/content/dog-barking-mono
-TinyWorlds: https://opengameart.org/content/different-steps-on-wood-stone-leaves-gravel-and-mud
-TinyWorlds: https://opengameart.org/content/forest-ambience
-Converted to OGG, mono, filtered/trimmed. See ASSET_SOURCES_0.5.md.

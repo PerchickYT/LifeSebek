@@ -1,0 +1,19 @@
+# Godot 4+
+.godot/
+.import/
+*.translation
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Export
+export/
+builds/
+*.exe
+*.pck
+*.zip
