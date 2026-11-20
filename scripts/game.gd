@@ -57,6 +57,9 @@ var polish: Polish
 var menu_title: Label
 var menu_stage: MenuScene
 var menu_dim: ColorRect
+var menu_shade: TextureRect
+var dim_layer: CanvasLayer
+var dim_tween: Tween
 func _ready():
 	dev_enabled = OS.get_cmdline_user_args().has("--dev")
 	load_settings()
@@ -108,7 +111,7 @@ func _ready():
 	apply_look()
 	menu_stage = MenuScene.new()
 	menu_stage.name = "MenuStage"
-	get_tree().root.add_child(menu_stage)  # добавляем в корень сцены, а не в game
+	add_child(menu_stage)
 	menu_stage.build(self)
 	show_menu(true)
 	if OS.get_cmdline_user_args().has("--smoke"):
@@ -176,12 +179,32 @@ func build_ui():
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(root)
+	# Слой затемнения лежит под слоем интерфейса (layer 0 < layer 1), поэтому
+	# затемняется только фон, а кнопки и текст меню всегда остаются яркими.
+	dim_layer = CanvasLayer.new()
+	dim_layer.layer = 0
+	add_child(dim_layer)
+	menu_shade = TextureRect.new()
+	var shade_gradient = Gradient.new()
+	shade_gradient.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	shade_gradient.colors = PackedColorArray([Color(0, 0, 0, 0.62), Color(0, 0, 0, 0.28), Color(0, 0, 0, 0.0)])
+	var shade_tex = GradientTexture2D.new()
+	shade_tex.gradient = shade_gradient
+	shade_tex.fill_from = Vector2(0, 0)
+	shade_tex.fill_to = Vector2(1, 0)
+	menu_shade.texture = shade_tex
+	menu_shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	menu_shade.stretch_mode = TextureRect.STRETCH_SCALE
+	menu_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_shade.anchor_right = 0.55
+	menu_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim_layer.add_child(menu_shade)
 	menu_dim = ColorRect.new()
-	menu_dim.color = Color(0, 0, 0, 0.75)
+	menu_dim.color = Color(0, 0, 0, 0.62)
 	menu_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	menu_dim.visible = false
-	root.add_child(menu_dim)
+	dim_layer.add_child(menu_dim)
 	var objective = hud_panel()
 	objective.position = Vector2(24, 24)
 	objective.custom_minimum_size = Vector2(594, 0)
@@ -254,8 +277,8 @@ func build_ui():
 	toast_surface.add_child(toast)
 	menu_panel = PanelContainer.new()
 	menu_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-	menu_panel.position = Vector2(44, -150)
-	menu_panel.size = Vector2(360, 320)
+	menu_panel.position = Vector2(20, -184)
+	menu_panel.size = Vector2(560, 610)
 	menu_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	root.add_child(menu_panel)
 	var scroll = ScrollContainer.new()
@@ -264,17 +287,52 @@ func build_ui():
 	menu_panel.add_child(scroll)
 	menu_box = VBoxContainer.new()
 	menu_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	menu_box.add_theme_constant_override("separation", 10)
-	scroll.add_child(menu_box)
+	menu_box.add_theme_constant_override("separation", 22)
+	var glow_margin = MarginContainer.new()      # поля, чтобы ScrollContainer не обрезал glow кнопок
+	for side in ["left", "right", "top", "bottom"]:
+		glow_margin.add_theme_constant_override("margin_" + side, 24)
+	glow_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(glow_margin)
+	glow_margin.add_child(menu_box)
 
-	menu_title = label("Life is Sebek", 52)
+	menu_title = label("Life is Sebek", 64)
+	menu_title.add_theme_font_override("font", menu_font())
 	menu_title.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	menu_title.position = Vector2(44, 34)
 	menu_title.add_theme_color_override("font_color", Color("fffdf5"))
+	menu_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	menu_title.add_theme_constant_override("outline_size", 6)
 	menu_title.add_theme_constant_override("shadow_offset_x", 2)
 	menu_title.add_theme_constant_override("shadow_offset_y", 4)
-	root.add_child(menu_dim)
+	var title_line = ColorRect.new()
+	title_line.color = Color(1, 1, 1, 0.9)
+	title_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_line.anchor_left = 0.0
+	title_line.anchor_right = 1.0
+	title_line.anchor_top = 1.0
+	title_line.anchor_bottom = 1.0
+	title_line.offset_top = -2.0
+	title_line.offset_bottom = 1.0
+	menu_title.add_child(title_line)
 	root.add_child(menu_title)
+func menu_font() -> SystemFont:
+	var f = SystemFont.new()
+	f.font_names = PackedStringArray(["Georgia", "Palatino Linotype", "Times New Roman", "DejaVu Serif", "serif"])
+	f.antialiasing = TextServer.FONT_ANTIALIASING_LCD
+	return f
+# Плавное затемнение ТОЛЬКО фона (кнопки лежат выше этого слоя).
+func set_dim(on: bool):
+	if menu_dim == null:
+		return
+	if dim_tween:
+		dim_tween.kill()
+	dim_tween = create_tween()
+	if on:
+		menu_dim.visible = true
+		dim_tween.tween_property(menu_dim, "modulate:a", 1.0, 0.25)
+	else:
+		dim_tween.tween_property(menu_dim, "modulate:a", 0.0, 0.2)
+		dim_tween.tween_callback(func(): menu_dim.visible = false)
 func clear_menu():
 	for child in menu_box.get_children():
 		menu_box.remove_child(child)
@@ -284,23 +342,33 @@ func button(text: String, callback: Callable):
 	b.text = text
 	b.flat = true
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(300, 46)
-	b.add_theme_font_size_override("font_size", 24)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	b.custom_minimum_size = Vector2(430, 74)
+	b.add_theme_font_override("font", menu_font())
+	b.add_theme_font_size_override("font_size", 38)
+	b.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	b.add_theme_constant_override("outline_size", 6)
 	b.add_theme_color_override("font_color", Color("fffdf5"))
 	b.add_theme_color_override("font_hover_color", Color("ffd788"))
 	b.add_theme_color_override("font_pressed_color", Color("ffd788"))
+	# тот же вид, что и был (подчёркивание), плюс небольшой белый glow
 	var sb = StyleBoxFlat.new()
-	sb.draw_center = false
+	sb.bg_color = Color(1, 1, 1, 0.04)
+	sb.shadow_color = Color(1, 1, 1, 0.16)
+	sb.shadow_size = 14
 	sb.border_width_bottom = 2
 	sb.border_color = Color(1, 1, 1, 0.35)
 	sb.content_margin_left = 4
 	sb.content_margin_right = 4
 	b.add_theme_stylebox_override("normal", sb)
 	var sbh: StyleBoxFlat = sb.duplicate()
+	sbh.bg_color = Color(1, 1, 1, 0.07)
+	sbh.shadow_color = Color(1, 1, 1, 0.28)
 	sbh.border_width_bottom = 3
 	sbh.border_color = Color(1, 1, 1, 0.85)
 	b.add_theme_stylebox_override("hover", sbh)
 	var sbp: StyleBoxFlat = sb.duplicate()
+	sbp.shadow_color = Color(1, 0.84, 0.53, 0.3)
 	sbp.border_color = Color("ffd788")
 	b.add_theme_stylebox_override("pressed", sbp)
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
@@ -308,6 +376,7 @@ func button(text: String, callback: Callable):
 	menu_box.add_child(b)
 func show_menu(main: bool = false):
 	paused = true
+	set_actors_frozen(true)
 	in_menu = main
 	dog.locked = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -322,6 +391,9 @@ func show_menu(main: bool = false):
 		subtitle_surface.visible = false
 	for c in hud:
 		c.visible = false
+	if polish:
+		polish.arrow_panel.visible = false
+		polish.hint_panel.visible = false
 	if menu_title:
 		menu_title.visible = main
 	if menu_stage:
@@ -330,8 +402,9 @@ func show_menu(main: bool = false):
 			menu_stage.set_paused(false)
 		else:
 			menu_stage.set_paused(true)
-	if menu_dim:
-		menu_dim.visible = not main        # затемнение только в подменю
+	set_dim(not main)        # затемняется только фон, и только в подменю
+	if menu_shade:
+		menu_shade.visible = main
 	clear_menu()
 	if main:
 		button("Играть", play_menu)
@@ -346,8 +419,7 @@ func show_menu(main: bool = false):
 		button("Настройки", show_settings)
 		button("Выйти", quit_game)
 func play_menu():
-	if menu_dim:
-		menu_dim.visible = true
+	set_dim(true)
 	if menu_stage:
 		menu_stage.set_paused(true)
 	clear_menu()
@@ -358,8 +430,7 @@ func play_menu():
 	button("Назад", func(): show_menu(true))
 
 func tests_menu():
-	if menu_dim:
-		menu_dim.visible = true
+	set_dim(true)
 	if menu_stage:
 		menu_stage.set_paused(true)
 	clear_menu()
@@ -372,18 +443,29 @@ func confirm_new():
 	menu_box.add_child(label("Заменить контрольную точку?", 24))
 	button("Да, начать заново", new_game)
 	button("Отмена", func(): show_menu(in_menu))
+var actors_frozen = false
+# На паузе собаки и люди должны замирать целиком (иначе их собственная анимация ходьбы
+# продолжает крутиться на месте, а после паузы они «телепортируются» в новую позу).
+func set_actors_frozen(on: bool):
+	if on == actors_frozen:
+		return
+	actors_frozen = on
+	var mode = Node.PROCESS_MODE_DISABLED if on else Node.PROCESS_MODE_INHERIT
+	var list: Array = [dog, retriever]
+	list.append_array(humans)
+	for a in list:
+		if a:
+			a.process_mode = mode
 func resume():
-	if menu_dim:
-		menu_dim.visible = false
-	if menu_stage:
-		menu_stage.deactivate()
-	if menu_title:
-		menu_title.visible = false
+	set_dim(false)
+	if menu_shade:
+		menu_shade.visible = false
 	if menu_stage:
 		menu_stage.deactivate()
 	if menu_title:
 		menu_title.visible = false
 	paused = false
+	set_actors_frozen(false)
 	in_menu = false
 	menu_panel.visible = false
 	dog.locked = not cut_lines.is_empty() or ending
@@ -465,6 +547,7 @@ func _physics_process(delta):
 		subtitle_surface.visible = subtitle.text != ""
 	if dog == null:
 		return
+	set_actors_frozen(paused)
 	if paused:
 		time_stats.paused += delta
 		return
@@ -1001,10 +1084,9 @@ func update_companions(delta: float):
 		threat.activate(Vector3(75, 0, 44))
 func show_settings():
 	if menu_title:
-		menu_title.visible = false
+		menu_title.visible = in_menu
 	clear_menu()
-	if menu_dim:
-		menu_dim.visible = true
+	set_dim(true)
 	if menu_stage:
 		menu_stage.set_paused(true)
 	menu_box.add_child(label("Настройки", 28))
